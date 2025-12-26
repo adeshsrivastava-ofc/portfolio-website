@@ -1,13 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowDown, Mail, FileText } from "lucide-react";
+import { ArrowDown, Mail, FileText, Download } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Subtle gradient background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
@@ -82,6 +82,12 @@ export function Hero() {
               <a href="#experience">
                 <FileText className="h-4 w-4" />
                 View my work
+              </a>
+            </Button>
+            <Button variant="outline" size="lg" className="gap-2" asChild>
+              <a href="/resume.pdf" download>
+                <Download className="h-4 w-4" />
+                Resume
               </a>
             </Button>
           </motion.div>
