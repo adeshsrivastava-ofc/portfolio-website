@@ -3,7 +3,7 @@ export const siteConfig = {
   title: "Senior Software Developer",
   description:
     "Senior Software Developer with 3+ years of experience in Full-Stack Development, Big Data Solutions, and Automation. Specializing in Java, Spring Boot, and modern DevOps practices.",
-  url: "https://adeshsrivastava.dev",
+  url: "https://mrshady.dev",
   email: "adeshsrivastava.ofc@gmail.com",
   phone: "+91 8319613234",
   location: "Pune, Maharashtra, India",

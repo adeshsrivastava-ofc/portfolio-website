@@ -35,12 +35,12 @@ export const metadata: Metadata = {
     "AWS",
     "Big Data",
   ],
-  authors: [{ name: "Adesh Srivastava", url: "https://adeshsrivastava.dev" }],
+  authors: [{ name: "Adesh Srivastava", url: "https://mrshady.dev" }],
   creator: "Adesh Srivastava",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://adeshsrivastava.dev",
+    url: "https://mrshady.dev",
     siteName: "Adesh Srivastava",
     title: "Adesh Srivastava | Senior Software Developer",
     description:
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  metadataBase: new URL("https://adeshsrivastava.dev"),
+  metadataBase: new URL("https://mrshady.dev"),
 };
 
 export const viewport: Viewport = {
