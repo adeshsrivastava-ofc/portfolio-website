@@ -4,9 +4,11 @@ import { useState, useEffect, useSyncExternalStore } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import { Menu, X, Moon, Sun } from "lucide-react";
+import Image from "next/image";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { FloatingDock } from "@/components/ui/floating-dock";
 
 // Custom hook for hydration-safe mounting
 function useHydrated() {
@@ -16,6 +18,12 @@ function useHydrated() {
     () => false
   );
 }
+
+// Navigation items for FloatingDock
+const navItems = siteConfig.nav.map((item) => ({
+  label: item.label,
+  href: item.href,
+}));
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -52,50 +60,54 @@ export function Navbar() {
       >
         <nav className="section-container">
           <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
+            {/* LEFT: Logo Section */}
             <a
-              href="#"
-              className="text-lg font-semibold tracking-tight hover:opacity-80 transition-opacity"
+              href="#hero"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              aria-label="Go to top"
             >
-              {siteConfig.name.split(" ")[0]}
-              <span className="text-muted-foreground">.dev</span>
+              <Image
+                src="/icon.png"
+                alt="Logo"
+                width={28}
+                height={28}
+                className="rounded-md"
+                priority
+              />
+              <span className="text-lg font-semibold tracking-tight">
+                Adesh<span className="text-muted-foreground">.dev</span>
+              </span>
             </a>
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-1">
-              {siteConfig.nav.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors animated-underline"
-                >
-                  {item.label}
-                </a>
-              ))}
-              <div className="ml-2 pl-2 border-l border-border">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleTheme}
-                  className="h-9 w-9"
-                  aria-label="Toggle theme"
-                >
-                  {mounted && (
-                    <motion.div
-                      key={theme}
-                      initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
-                      animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {theme === "dark" ? (
-                        <Sun className="h-4 w-4" />
-                      ) : (
-                        <Moon className="h-4 w-4" />
-                      )}
-                    </motion.div>
-                  )}
-                </Button>
-              </div>
+            {/* CENTER: Desktop Navigation - Floating Dock */}
+            <div className="hidden md:flex items-center justify-center flex-1">
+              <FloatingDock items={navItems} />
+            </div>
+
+            {/* RIGHT: Theme Toggle (Desktop) */}
+            <div className="hidden md:block">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="h-9 w-9"
+                aria-label="Toggle theme"
+              >
+                {mounted && (
+                  <motion.div
+                    key={theme}
+                    initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
+                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                  </motion.div>
+                )}
+              </Button>
             </div>
 
             {/* Mobile Menu Button */}

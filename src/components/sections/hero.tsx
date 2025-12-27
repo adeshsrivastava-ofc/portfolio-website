@@ -4,16 +4,21 @@ import { motion } from "framer-motion";
 import { ArrowDown, Mail, FileText, Download } from "lucide-react";
 import { siteConfig } from "@/config/site";
 import { Button } from "@/components/ui/button";
+import { Spotlight } from "@/components/ui/spotlight";
 
 export function Hero() {
   return (
     <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Subtle gradient background */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/30" />
-        <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-primary/[0.02] rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-primary/[0.02] rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
       </div>
+
+      {/* Aceternity-style Spotlight - subtle ambient lighting */}
+      <Spotlight
+        className="-z-10"
+        fill="currentColor"
+      />
 
       <div className="section-container py-32 md:py-40">
         <div className="max-w-3xl">
