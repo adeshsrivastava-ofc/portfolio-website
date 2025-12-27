@@ -1,8 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
+import { useRef, useState, createContext, useContext } from "react";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  AnimatePresence,
+  MotionValue,
+} from "framer-motion";
 import { cn } from "@/lib/utils";
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface DockItem {
   label: string;
@@ -16,95 +27,207 @@ interface FloatingDockProps {
   className?: string;
 }
 
-export function FloatingDock({ items, className }: FloatingDockProps) {
-  const mouseX = useMotionValue(Infinity);
-
-  // Separate internal and external items
-  const internalItems = items.filter((item) => !item.external && !item.href.startsWith("http"));
-  const externalItems = items.filter((item) => item.external || item.href.startsWith("http"));
-
-  return (
-    <motion.nav
-      onMouseMove={(e) => mouseX.set(e.pageX)}
-      onMouseLeave={() => mouseX.set(Infinity)}
-      className={cn(
-        // Increased gap and padding for hover scale headroom
-        "flex items-center gap-1.5 rounded-full border border-border/50 bg-background/80 px-4 py-2.5 backdrop-blur-md shadow-lg",
-        className
-      )}
-      style={{ overflow: "visible" }}
-      role="navigation"
-      aria-label="Main navigation"
-    >
-      {/* Internal navigation items */}
-      {internalItems.map((item) => (
-        <DockIcon key={item.href} mouseX={mouseX} item={item} />
-      ))}
-      
-      {/* Separator between internal and external */}
-      {externalItems.length > 0 && (
-        <div className="mx-2 h-6 w-px bg-border/40" aria-hidden="true" />
-      )}
-      
-      {/* External link items */}
-      {externalItems.map((item) => (
-        <DockIcon key={item.href} mouseX={mouseX} item={item} />
-      ))}
-    </motion.nav>
-  );
-}
-
 interface DockIconProps {
-  mouseX: ReturnType<typeof useMotionValue<number>>;
   item: DockItem;
 }
 
-// Base icon size for calculating scale headroom
-const ICON_BASE_SIZE = 40; // px - includes padding
-const MAX_SCALE = 1.25;
+// ============================================================================
+// Shared Motion Context
+// ============================================================================
 
-function DockIcon({ mouseX, item }: DockIconProps) {
+interface DockContextType {
+  mouseX: MotionValue<number>;
+  isHovering: boolean;
+}
+
+const DockContext = createContext<DockContextType | null>(null);
+
+function useDockContext() {
+  const ctx = useContext(DockContext);
+  if (!ctx) throw new Error("DockIcon must be used within FloatingDock");
+  return ctx;
+}
+
+// ============================================================================
+// Spring Configurations (Aceternity-style physics)
+// ============================================================================
+
+const SPRING_CONFIG = {
+  // Higher stiffness + lower damping = snappier with overshoot
+  icon: { mass: 0.1, stiffness: 290, damping: 14 },
+  container: { mass: 0.2, stiffness: 200, damping: 18 },
+  tooltip: { mass: 0.3, stiffness: 400, damping: 24 },
+};
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const ICON_SIZE = 40; // Base icon container size (px)
+const ICON_SIZE_ACTIVE = 56; // Max size when hovered (px)
+const MAGNIFICATION = 1.4; // Scale multiplier for active icon
+const NEIGHBOR_MAGNIFICATION = 1.15; // Scale for adjacent icons
+const DISTANCE_THRESHOLD = 120; // px - affect radius for neighbors
+
+// ============================================================================
+// Floating Dock Container
+// ============================================================================
+
+export function FloatingDock({ items, className }: FloatingDockProps) {
+  const mouseX = useMotionValue(Infinity);
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Separate internal and external items
+  const internalItems = items.filter(
+    (item) => !item.external && !item.href.startsWith("http")
+  );
+  const externalItems = items.filter(
+    (item) => item.external || item.href.startsWith("http")
+  );
+
+  // Container padding animation - expands when hovering
+  const paddingX = useSpring(
+    useTransform(
+      mouseX,
+      [Infinity, 0],
+      [16, 20] // px padding: compact -> expanded
+    ),
+    SPRING_CONFIG.container
+  );
+
+  const paddingY = useSpring(
+    useTransform(
+      mouseX,
+      [Infinity, 0],
+      [10, 12]
+    ),
+    SPRING_CONFIG.container
+  );
+
+  // Subtle gap expansion between items
+  const gap = useSpring(
+    useTransform(
+      mouseX,
+      [Infinity, 0],
+      [4, 6] // gap: compact -> expanded
+    ),
+    SPRING_CONFIG.container
+  );
+
+  return (
+    <DockContext.Provider value={{ mouseX, isHovering }}>
+      <motion.nav
+        onMouseMove={(e) => {
+          mouseX.set(e.pageX);
+          if (!isHovering) setIsHovering(true);
+        }}
+        onMouseLeave={() => {
+          mouseX.set(Infinity);
+          setIsHovering(false);
+        }}
+        style={{
+          paddingLeft: paddingX,
+          paddingRight: paddingX,
+          paddingTop: paddingY,
+          paddingBottom: paddingY,
+          gap,
+        }}
+        className={cn(
+          "flex items-end rounded-full border border-border/50 bg-background/80 backdrop-blur-md shadow-lg",
+          className
+        )}
+        role="navigation"
+        aria-label="Main navigation"
+      >
+        {/* Internal navigation items */}
+        {internalItems.map((item) => (
+          <DockIcon key={item.href} item={item} />
+        ))}
+
+        {/* Separator between internal and external */}
+        {externalItems.length > 0 && (
+          <motion.div
+            className="self-center mx-1 w-px bg-border/40"
+            style={{
+              height: useSpring(
+                useTransform(mouseX, [Infinity, 0], [20, 28]),
+                SPRING_CONFIG.container
+              ),
+            }}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* External link items */}
+        {externalItems.map((item) => (
+          <DockIcon key={item.href} item={item} />
+        ))}
+      </motion.nav>
+    </DockContext.Provider>
+  );
+}
+
+// ============================================================================
+// Dock Icon with Space Redistribution
+// ============================================================================
+
+function DockIcon({ item }: DockIconProps) {
+  const { mouseX } = useDockContext();
   const ref = useRef<HTMLAnchorElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
   const showTooltip = isHovered || isFocused;
 
+  // Calculate distance from mouse to icon center
   const distance = useTransform(mouseX, (val) => {
     const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
     return val - bounds.x - bounds.width / 2;
   });
 
-  // Refined scale: slightly reduced max to prevent overlap
-  // Active icon 1.25, neighbors scale gradually (1.1 adjacent)
-  const scaleSync = useTransform(
-    distance,
-    [-100, -50, 0, 50, 100],
-    [1.0, 1.1, MAX_SCALE, 1.1, 1.0]
-  );
-  
-  // Spring with controlled overshoot
-  const scale = useSpring(scaleSync, {
-    mass: 0.1,
-    stiffness: 200,
-    damping: 12,
+  // -------------------------------------------------------------------------
+  // Size-based animation (not scale) for space redistribution
+  // This makes the container grow, pushing neighbors apart naturally
+  // -------------------------------------------------------------------------
+  const sizeSync = useTransform(distance, (d) => {
+    const absDistance = Math.abs(d);
+    if (absDistance >= DISTANCE_THRESHOLD) return ICON_SIZE;
+
+    // Smooth falloff using cosine interpolation
+    const progress = 1 - absDistance / DISTANCE_THRESHOLD;
+    const eased = (1 - Math.cos(progress * Math.PI)) / 2;
+
+    return ICON_SIZE + (ICON_SIZE_ACTIVE - ICON_SIZE) * eased;
   });
 
-  // Y-axis lift for active item - increased for better tooltip clearance
-  const ySync = useTransform(distance, [-60, 0, 60], [0, -6, 0]);
-  const y = useSpring(ySync, {
-    mass: 0.1,
-    stiffness: 200,
-    damping: 12,
+  const size = useSpring(sizeSync, SPRING_CONFIG.icon);
+
+  // Icon scale within container (for visual pop)
+  const iconScaleSync = useTransform(distance, (d) => {
+    const absDistance = Math.abs(d);
+    if (absDistance >= DISTANCE_THRESHOLD) return 1;
+
+    const progress = 1 - absDistance / DISTANCE_THRESHOLD;
+    const eased = (1 - Math.cos(progress * Math.PI)) / 2;
+
+    // Active icon gets full magnification, neighbors get less
+    if (absDistance < 30) {
+      return 1 + (MAGNIFICATION - 1) * eased;
+    }
+    return 1 + (NEIGHBOR_MAGNIFICATION - 1) * eased;
   });
 
-  // Shadow/glow based on proximity
-  const shadowOpacity = useTransform(distance, [-60, 0, 60], [0, 0.25, 0]);
-  const shadowSpring = useSpring(shadowOpacity, {
-    mass: 0.1,
-    stiffness: 150,
-    damping: 15,
+  const iconScale = useSpring(iconScaleSync, SPRING_CONFIG.icon);
+
+  // Y-axis lift for active item
+  const ySync = useTransform(distance, (d) => {
+    const absDistance = Math.abs(d);
+    if (absDistance >= 80) return 0;
+    const progress = 1 - absDistance / 80;
+    return -8 * progress; // Lift up to 8px
   });
+
+  const y = useSpring(ySync, SPRING_CONFIG.icon);
 
   const isExternal = item.external || item.href.startsWith("http");
 
@@ -119,48 +242,50 @@ function DockIcon({ mouseX, item }: DockIconProps) {
       onMouseLeave={() => setIsHovered(false)}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
-      style={{ 
-        scale,
+      style={{
+        width: size,
+        height: size,
         y,
-        boxShadow: useTransform(
-          shadowSpring,
-          (opacity) => `0 4px 12px rgba(0, 0, 0, ${opacity}), 0 0 12px rgba(var(--primary-rgb, 59, 130, 246), ${opacity * 0.4})`
-        ),
       }}
       className={cn(
-        // Fixed size container with margin for scale headroom
-        "relative flex items-center justify-center w-10 h-10",
+        "relative flex items-center justify-center",
         "text-muted-foreground hover:text-foreground",
-        "rounded-full transition-colors duration-200",
-        "hover:bg-secondary/50",
+        "rounded-full transition-colors duration-150",
+        "hover:bg-secondary/40",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       )}
       whileTap={{ scale: 0.92 }}
     >
-      {/* Icon */}
-      <span className="h-[18px] w-[18px] flex items-center justify-center" aria-hidden="true">
+      {/* Icon with inner scale */}
+      <motion.span
+        className="flex items-center justify-center"
+        style={{
+          width: 18,
+          height: 18,
+          scale: iconScale,
+        }}
+        aria-hidden="true"
+      >
         {item.icon}
-      </span>
+      </motion.span>
 
-      {/* Tooltip - positioned above with proper clearance */}
+      {/* Tooltip */}
       <AnimatePresence>
         {showTooltip && (
           <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.9 }}
+            initial={{ opacity: 0, y: 8, scale: 0.85 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.9 }}
+            exit={{ opacity: 0, y: 8, scale: 0.85 }}
             transition={{
               type: "spring",
-              stiffness: 350,
-              damping: 22,
-              mass: 0.4,
+              ...SPRING_CONFIG.tooltip,
             }}
-            className="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none z-[60]"
+            className="absolute -top-10 left-1/2 -translate-x-1/2 pointer-events-none z-[60]"
           >
             <div className="px-2.5 py-1.5 rounded-md bg-foreground text-background text-xs font-medium whitespace-nowrap shadow-lg">
               {item.label}
             </div>
-            {/* Tooltip arrow */}
+            {/* Arrow */}
             <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-foreground rotate-45" />
           </motion.div>
         )}
