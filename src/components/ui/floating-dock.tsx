@@ -49,27 +49,57 @@ function DockIcon({ mouseX, item }: DockIconProps) {
     return val - bounds.x - bounds.width / 2;
   });
 
-  // Subtle scale effect - restrained for premium feel
-  const widthSync = useTransform(distance, [-100, 0, 100], [1, 1.08, 1]);
-  const width = useSpring(widthSync, {
+  // Enhanced scale effect with neighbor influence
+  // Active item scales to 1.3, neighbors get gradual falloff from 1.15 to 1.0
+  const scaleSync = useTransform(
+    distance,
+    [-150, -75, 0, 75, 150],
+    [1.0, 1.12, 1.3, 1.12, 1.0]
+  );
+  
+  // Spring-based animation with slight overshoot
+  const scale = useSpring(scaleSync, {
+    mass: 0.1,
+    stiffness: 200,
+    damping: 10, // Lower damping = more bounce/overshoot
+  });
+
+  // Subtle y-axis lift for active item
+  const ySync = useTransform(distance, [-100, 0, 100], [0, -2, 0]);
+  const y = useSpring(ySync, {
+    mass: 0.1,
+    stiffness: 200,
+    damping: 12,
+  });
+
+  // Shadow intensity based on proximity
+  const shadowOpacity = useTransform(distance, [-100, 0, 100], [0, 0.25, 0]);
+  const shadowSpring = useSpring(shadowOpacity, {
     mass: 0.1,
     stiffness: 150,
-    damping: 12,
+    damping: 15,
   });
 
   return (
     <motion.a
       ref={ref}
       href={item.href}
-      style={{ scale: width }}
+      style={{ 
+        scale,
+        y,
+        boxShadow: useTransform(
+          shadowSpring,
+          (opacity) => `0 4px 12px rgba(0, 0, 0, ${opacity}), 0 0 20px rgba(var(--primary-rgb, 59, 130, 246), ${opacity * 0.4})`
+        ),
+      }}
       className={cn(
         "relative flex items-center gap-2 px-3 py-1.5 text-sm font-medium",
         "text-muted-foreground hover:text-foreground",
         "rounded-full transition-colors duration-200",
-        "hover:bg-secondary/50",
+        "hover:bg-secondary/60",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       )}
-      whileTap={{ scale: 0.98 }}
+      whileTap={{ scale: 0.95 }}
     >
       {item.icon && (
         <span className="h-4 w-4 shrink-0" aria-hidden="true">
