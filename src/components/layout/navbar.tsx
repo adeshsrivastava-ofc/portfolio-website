@@ -3,12 +3,27 @@
 import { useState, useEffect, useSyncExternalStore } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
-import { Menu, X, Moon, Sun } from "lucide-react";
+import {
+  Menu,
+  X,
+  Moon,
+  Sun,
+  Home,
+  User,
+  Briefcase,
+  FolderKanban,
+  Wrench,
+  Mail,
+  Linkedin,
+  Github,
+  Twitter,
+  Code2,
+} from "lucide-react";
 import Image from "next/image";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FloatingDock } from "@/components/ui/floating-dock";
+import { FloatingDock, type DockItem } from "@/components/ui/floating-dock";
 
 // Custom hook for hydration-safe mounting
 function useHydrated() {
@@ -19,11 +34,21 @@ function useHydrated() {
   );
 }
 
-// Navigation items for FloatingDock
-const navItems = siteConfig.nav.map((item) => ({
-  label: item.label,
-  href: item.href,
-}));
+// Icon-only navigation items for FloatingDock
+const dockItems: DockItem[] = [
+  // Internal navigation
+  { label: "Home", href: "#hero", icon: <Home className="w-full h-full" /> },
+  { label: "About", href: "#about", icon: <User className="w-full h-full" /> },
+  { label: "Experience", href: "#experience", icon: <Briefcase className="w-full h-full" /> },
+  { label: "Projects", href: "#projects", icon: <FolderKanban className="w-full h-full" /> },
+  { label: "Skills", href: "#skills", icon: <Wrench className="w-full h-full" /> },
+  { label: "Contact", href: "#contact", icon: <Mail className="w-full h-full" /> },
+  // External links
+  { label: "LinkedIn", href: siteConfig.links.linkedin, icon: <Linkedin className="w-full h-full" />, external: true },
+  { label: "GitHub", href: siteConfig.links.github, icon: <Github className="w-full h-full" />, external: true },
+  { label: "Twitter", href: siteConfig.links.twitter, icon: <Twitter className="w-full h-full" />, external: true },
+  { label: "LeetCode", href: siteConfig.links.leetcode, icon: <Code2 className="w-full h-full" />, external: true },
+];
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -81,7 +106,7 @@ export function Navbar() {
 
             {/* CENTER: Desktop Navigation - Floating Dock */}
             <div className="hidden md:flex items-center justify-center flex-1">
-              <FloatingDock items={navItems} />
+              <FloatingDock items={dockItems} />
             </div>
 
             {/* RIGHT: Theme Toggle (Desktop) */}
