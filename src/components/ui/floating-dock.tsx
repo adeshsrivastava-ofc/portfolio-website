@@ -28,25 +28,27 @@ export function FloatingDock({ items, className }: FloatingDockProps) {
       onMouseMove={(e) => mouseX.set(e.pageX)}
       onMouseLeave={() => mouseX.set(Infinity)}
       className={cn(
-        "flex items-center gap-1 rounded-full border border-border/50 bg-background/80 px-3 py-2 backdrop-blur-md shadow-lg",
+        // Increased gap and padding for hover scale headroom
+        "flex items-center gap-1.5 rounded-full border border-border/50 bg-background/80 px-4 py-2.5 backdrop-blur-md shadow-lg",
         className
       )}
+      style={{ overflow: "visible" }}
       role="navigation"
       aria-label="Main navigation"
     >
       {/* Internal navigation items */}
-      {internalItems.map((item, index) => (
-        <DockIcon key={item.href} mouseX={mouseX} item={item} index={index} />
+      {internalItems.map((item) => (
+        <DockIcon key={item.href} mouseX={mouseX} item={item} />
       ))}
       
       {/* Separator between internal and external */}
       {externalItems.length > 0 && (
-        <div className="mx-1 h-5 w-px bg-border/50" aria-hidden="true" />
+        <div className="mx-2 h-6 w-px bg-border/40" aria-hidden="true" />
       )}
       
       {/* External link items */}
-      {externalItems.map((item, index) => (
-        <DockIcon key={item.href} mouseX={mouseX} item={item} index={internalItems.length + index} />
+      {externalItems.map((item) => (
+        <DockIcon key={item.href} mouseX={mouseX} item={item} />
       ))}
     </motion.nav>
   );
@@ -55,10 +57,13 @@ export function FloatingDock({ items, className }: FloatingDockProps) {
 interface DockIconProps {
   mouseX: ReturnType<typeof useMotionValue<number>>;
   item: DockItem;
-  index: number;
 }
 
-function DockIcon({ mouseX, item, index }: DockIconProps) {
+// Base icon size for calculating scale headroom
+const ICON_BASE_SIZE = 40; // px - includes padding
+const MAX_SCALE = 1.25;
+
+function DockIcon({ mouseX, item }: DockIconProps) {
   const ref = useRef<HTMLAnchorElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -70,22 +75,23 @@ function DockIcon({ mouseX, item, index }: DockIconProps) {
     return val - bounds.x - bounds.width / 2;
   });
 
-  // Enhanced scale: active icon 1.35, neighbors scale gradually
+  // Refined scale: slightly reduced max to prevent overlap
+  // Active icon 1.25, neighbors scale gradually (1.1 adjacent)
   const scaleSync = useTransform(
     distance,
-    [-120, -60, 0, 60, 120],
-    [1.0, 1.15, 1.35, 1.15, 1.0]
+    [-100, -50, 0, 50, 100],
+    [1.0, 1.1, MAX_SCALE, 1.1, 1.0]
   );
   
-  // Spring with slight overshoot for expressive feel
+  // Spring with controlled overshoot
   const scale = useSpring(scaleSync, {
     mass: 0.1,
     stiffness: 200,
-    damping: 10,
+    damping: 12,
   });
 
-  // Y-axis lift for active item
-  const ySync = useTransform(distance, [-80, 0, 80], [0, -4, 0]);
+  // Y-axis lift for active item - increased for better tooltip clearance
+  const ySync = useTransform(distance, [-60, 0, 60], [0, -6, 0]);
   const y = useSpring(ySync, {
     mass: 0.1,
     stiffness: 200,
@@ -93,7 +99,7 @@ function DockIcon({ mouseX, item, index }: DockIconProps) {
   });
 
   // Shadow/glow based on proximity
-  const shadowOpacity = useTransform(distance, [-80, 0, 80], [0, 0.3, 0]);
+  const shadowOpacity = useTransform(distance, [-60, 0, 60], [0, 0.25, 0]);
   const shadowSpring = useSpring(shadowOpacity, {
     mass: 0.1,
     stiffness: 150,
@@ -118,39 +124,40 @@ function DockIcon({ mouseX, item, index }: DockIconProps) {
         y,
         boxShadow: useTransform(
           shadowSpring,
-          (opacity) => `0 4px 12px rgba(0, 0, 0, ${opacity}), 0 0 16px rgba(var(--primary-rgb, 59, 130, 246), ${opacity * 0.5})`
+          (opacity) => `0 4px 12px rgba(0, 0, 0, ${opacity}), 0 0 12px rgba(var(--primary-rgb, 59, 130, 246), ${opacity * 0.4})`
         ),
       }}
       className={cn(
-        "relative flex items-center justify-center p-2.5",
+        // Fixed size container with margin for scale headroom
+        "relative flex items-center justify-center w-10 h-10",
         "text-muted-foreground hover:text-foreground",
         "rounded-full transition-colors duration-200",
-        "hover:bg-secondary/60",
+        "hover:bg-secondary/50",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       )}
-      whileTap={{ scale: 0.9 }}
+      whileTap={{ scale: 0.92 }}
     >
       {/* Icon */}
       <span className="h-[18px] w-[18px] flex items-center justify-center" aria-hidden="true">
         {item.icon}
       </span>
 
-      {/* Tooltip - appears above on hover/focus */}
+      {/* Tooltip - positioned above with proper clearance */}
       <AnimatePresence>
         {showTooltip && (
           <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.9 }}
+            initial={{ opacity: 0, y: 6, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.9 }}
+            exit={{ opacity: 0, y: 6, scale: 0.9 }}
             transition={{
               type: "spring",
-              stiffness: 300,
-              damping: 20,
-              mass: 0.5,
+              stiffness: 350,
+              damping: 22,
+              mass: 0.4,
             }}
-            className="absolute -top-10 left-1/2 -translate-x-1/2 pointer-events-none z-50"
+            className="absolute -top-12 left-1/2 -translate-x-1/2 pointer-events-none z-[60]"
           >
-            <div className="px-2.5 py-1 rounded-md bg-foreground text-background text-xs font-medium whitespace-nowrap shadow-lg">
+            <div className="px-2.5 py-1.5 rounded-md bg-foreground text-background text-xs font-medium whitespace-nowrap shadow-lg">
               {item.label}
             </div>
             {/* Tooltip arrow */}

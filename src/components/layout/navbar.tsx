@@ -72,6 +72,7 @@ export function Navbar() {
 
   return (
     <>
+      {/* LAYER A: Top Bar - Logo & Theme Toggle */}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -83,8 +84,8 @@ export function Navbar() {
             : "bg-transparent"
         )}
       >
-        <nav className="section-container">
-          <div className="flex h-16 items-center justify-between">
+        <div className="section-container">
+          <div className="flex h-14 items-center justify-between">
             {/* LEFT: Logo Section */}
             <a
               href="#hero"
@@ -103,11 +104,6 @@ export function Navbar() {
                 Adesh<span className="text-muted-foreground">.dev</span>
               </span>
             </a>
-
-            {/* CENTER: Desktop Navigation - Floating Dock */}
-            <div className="hidden md:flex items-center justify-center flex-1">
-              <FloatingDock items={dockItems} />
-            </div>
 
             {/* RIGHT: Theme Toggle (Desktop) */}
             <div className="hidden md:block">
@@ -165,8 +161,21 @@ export function Navbar() {
               </Button>
             </div>
           </div>
-        </nav>
+        </div>
       </motion.header>
+
+      {/* LAYER B: Floating Dock Navigation - Desktop Only */}
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.15, ease: [0.21, 0.47, 0.32, 0.98] }}
+        className="fixed top-[72px] left-0 right-0 z-40 hidden md:flex justify-center pointer-events-none"
+        style={{ overflow: "visible" }}
+      >
+        <div className="pointer-events-auto" style={{ overflow: "visible" }}>
+          <FloatingDock items={dockItems} />
+        </div>
+      </motion.div>
 
       {/* Mobile Menu */}
       <AnimatePresence>
